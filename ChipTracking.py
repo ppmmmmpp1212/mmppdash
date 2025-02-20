@@ -13,7 +13,7 @@ st.set_page_config(page_title="MMPP Chip Tracking", page_icon = "Screenshot 2025
 # Judul aplikasi di tengah menggunakan CSS
 st.markdown(
     """
-    <h1 style='text-align: center;'>📊 MMPP CHIP TRACKING</h1>
+    <h1 style='text-align: center;'>MMPP CHIP TRACKING</h1>
     """,
     unsafe_allow_html=True
 )
