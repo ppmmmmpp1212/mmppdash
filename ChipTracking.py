@@ -250,6 +250,7 @@ def main():
                                     display: flex;
                                     justify-content: space-between;
                                     gap: 20px; /* Jarak antar scorecard */
+                                    margin-bottom: 20px; /* Jarak antar baris scorecard */
                                 }
                                 .scorecard {
                                     background-color: #f9f9f9;
@@ -275,17 +276,30 @@ def main():
                                 unsafe_allow_html=True
                             )
 
-                            # Container untuk scorecard
+                            # Ambil data LinkAjaXPJP untuk Total Debit dan Jumlah Transaksi
+                            df_linkaja = fetch_bigquery_data("LinkAjaXPJP", search_term, "NoRS")
+                            total_debit = 0  # Default value jika data tidak ada
+                            linkaja_transaction_count = 0  # Default value untuk jumlah transaksi LinkAja
+                            if df_linkaja is not None and not df_linkaja.empty and "InitiateDate" in df_linkaja.columns and "Debit" in df_linkaja.columns:
+                                df_linkaja["InitiateDate"] = pd.to_datetime(df_linkaja["InitiateDate"])
+                                df_linkaja_filtered = df_linkaja[
+                                    (df_linkaja["InitiateDate"].dt.date >= linkaja_start_date) & 
+                                    (df_linkaja["InitiateDate"].dt.date <= linkaja_end_date)
+                                ]
+                                if not df_linkaja_filtered.empty:
+                                    df_linkaja_filtered["Debit"] = pd.to_numeric(df_linkaja_filtered["Debit"], errors='coerce').fillna(0)
+                                    total_debit = df_linkaja_filtered["Debit"].sum()
+                                    linkaja_transaction_count = len(df_linkaja_filtered)  # Jumlah transaksi dari LinkAja
+
+                            # Baris pertama: 3 scorecard
                             st.markdown(
                                 """
                                 <div class="scorecard-container">
                                 """,
                                 unsafe_allow_html=True
                             )
+                            col_score1, col_score2, col_score3 = st.columns(3)
 
-                            # Kolom scorecard dengan styling kustom
-                            col_score1, col_score2, col_score3, col_score4, col_score5 = st.columns(5)
-                            
                             # Scorecard 1: Daftar OutletID unik
                             outlet_ids = df_all_filtered["OutletID"].dropna().unique().tolist() if "OutletID" in df_all_filtered.columns else []
                             with col_score1:
@@ -325,13 +339,30 @@ def main():
                                     unsafe_allow_html=True
                                 )
 
-                            # Scorecard 4: Jumlah TransactionAmount (count)
+                            # Tutup container baris pertama
+                            st.markdown(
+                                """
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+
+                            # Baris kedua: 4 scorecard
+                            st.markdown(
+                                """
+                                <div class="scorecard-container">
+                                """,
+                                unsafe_allow_html=True
+                            )
+                            col_score4, col_score5, col_score6, col_score7 = st.columns(4)
+
+                            # Scorecard 4: Jumlah TransactionAmount (NGRS)
                             transaction_count = len(df_all_filtered["TransactionAmount"]) if "TransactionAmount" in df_all_filtered.columns else 0
                             with col_score4:
                                 st.markdown(
                                     f"""
                                     <div class="scorecard">
-                                        <div class="metric-label">Jumlah Transaksi</div>
+                                        <div class="metric-label">Jumlah Transaksi NGRS</div>
                                         <div class="metric-value">{transaction_count:,}</div>
                                     </div>
                                     """,
@@ -351,7 +382,31 @@ def main():
                                     unsafe_allow_html=True
                                 )
 
-                            # Tutup container scorecard
+                            # Scorecard 6: Total Debit (dari LinkAjaXPJP)
+                            with col_score6:
+                                st.markdown(
+                                    f"""
+                                    <div class="scorecard">
+                                        <div class="metric-label">Total Debit (LinkAja)</div>
+                                        <div class="metric-value">Rp {format_rupiah(total_debit)}</div>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+
+                            # Scorecard 7: Jumlah Transaksi LinkAja (baru)
+                            with col_score7:
+                                st.markdown(
+                                    f"""
+                                    <div class="scorecard">
+                                        <div class="metric-label">Jumlah Transaksi LinkAja</div>
+                                        <div class="metric-value">{linkaja_transaction_count:,}</div>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+
+                            # Tutup container baris kedua
                             st.markdown(
                                 """
                                 </div>
