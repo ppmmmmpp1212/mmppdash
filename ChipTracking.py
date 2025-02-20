@@ -1,11 +1,12 @@
 import streamlit as st
 from google.cloud import bigquery
+from google.oauth2 import service_account
 import pandas as pd
 import os
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, date
-
+import json
 
 st.set_page_config(page_title="MMPP Chip Tracking", layout="wide")
 
@@ -18,22 +19,28 @@ st.markdown(
 )
 st.markdown("---")
 st.markdown("<br><br>", unsafe_allow_html=True)
-# Path ke file service account
-service_account_path = "alfred-analytics-406004-3bcc44580cf0.json"
+
+# Fungsi untuk menginisialisasi BigQuery client dari secrets
+def get_bigquery_client():
+    try:
+        # Ambil kredensial dari secrets
+        credentials_json = st.secrets["bigquery"]["credentials"]
+        credentials = service_account.Credentials.from_service_account_info(json.loads(credentials_json))
+        
+        # Inisialisasi BigQuery Client
+        client = bigquery.Client(credentials=credentials, project=credentials.project_id)
+        return client
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat menginisialisasi BigQuery Client: {e}")
+        return None
 
 # Fungsi untuk mengambil data dari BigQuery berdasarkan pencarian
 def fetch_bigquery_data(table_name, search_term, search_column):
-    if not os.path.exists(service_account_path):
-        st.error("File service account JSON tidak ditemukan! Pastikan file 'alfred-analytics-406004-3bcc44580cf0.json' ada di direktori yang sama.")
+    client = get_bigquery_client()
+    if client is None:
         return None
     
-    # Set kredensial
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = service_account_path
-    
     try:
-        # Inisialisasi BigQuery Client
-        client = bigquery.Client()
-        
         # Query BigQuery dengan filter berdasarkan kolom pencarian
         query = f"""
         SELECT *
