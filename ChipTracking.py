@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime, date
 import json
 
-st.set_page_config(page_title="MMPP Chip Tracking", layout="wide")
+st.set_page_config(page_title="MMPP Chip Tracking", page_icon = "Screenshot 2025-02-20 153019.png", layout="wide")
 
 # Judul aplikasi di tengah menggunakan CSS
 st.markdown(
