@@ -5,3 +5,4 @@ pandas
 plotly
 db-dtypes
 xlsxwriter
+streamlit_option_menu
