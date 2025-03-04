@@ -11,6 +11,7 @@ import re
 from io import BytesIO
 
 # Fungsi untuk menginisialisasi BigQuery client dari secrets
+@st.cache_resource
 def get_bigquery_client():
     try:
         credentials_json = st.secrets["bigquery"]["credentials"]
@@ -44,6 +45,7 @@ def fetch_bigquery_data(table_name, search_term, search_column):
         st.error(f"Terjadi kesalahan saat mengambil data dari BigQuery: {e}")
         return None
 
+@st.cache_data
 def fetch_aggregate_data(table_name, count_column=None, sum_column=None, date_column=None, start_date=None, end_date=None, cluster_column=None, selected_clusters=None, is_cluster_string=False, filter_column=None, filter_not_zero=False, transaction_type_column=None, selected_transaction_types=None, transaction_scenario=None, credit_condition=False):
     client = get_bigquery_client()
     if client is None:
@@ -121,6 +123,7 @@ def to_excel(df):
     excel_data = output.getvalue()
     return excel_data
 
+@st.cache_data
 def fetch_finpay_data(start_date, end_date, selected_cluster_ids):
     client = get_bigquery_client()
     if client is None:
@@ -147,6 +150,7 @@ def fetch_finpay_data(start_date, end_date, selected_cluster_ids):
         st.error(f"Terjadi kesalahan saat mengambil data Finpay: {e}")
         return 0, 0
 
+@st.cache_data
 def fetch_total_tp(start_date, end_date, selected_transaction_types, selected_cluster_ids):
     client = get_bigquery_client()
     if client is None:
@@ -183,6 +187,9 @@ def fetch_total_tp(start_date, end_date, selected_transaction_types, selected_cl
         st.error(f"Terjadi kesalahan saat mengambil Total_TP: {e}")
         return 0
 
+
+
+@st.cache_data
 def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, selected_cluster_ids):
     client = get_bigquery_client()
     if client is None:
@@ -786,7 +793,7 @@ def main():
             st.markdown(
                 f"""
                 <div class="scorecard ngrs-group">
-                    <div class="metric-label">Total TP NGRS * TP</div>
+                    <div class="metric-label">Total NGRS * TP</div>
                     <div class="metric-box">Rp {format_rupiah(total_tp)}</div>
                 </div>
                 """,
@@ -802,8 +809,8 @@ def main():
         # Grup 5: Ringkasan Tambahan dengan border (sesuai desain grup 1)
         st.markdown("<div class='group-header-font'>Total Transaksi NGRS & LinkAja</div>", unsafe_allow_html=True)
 
-        # Kolom untuk scorecards
-        col14, col15, col16, col17 = st.columns(4)
+        # Baris pertama: 2 kolom
+        col14, col15 = st.columns(2)
 
         with col14:
             st.markdown(
@@ -827,6 +834,9 @@ def main():
                 unsafe_allow_html=True
             )
 
+        # Baris kedua: 2 kolom
+        col16, col17 = st.columns(2)
+
         with col16:
             st.markdown(
                 f"""
@@ -842,14 +852,14 @@ def main():
             st.markdown(
                 f"""
                 <div class="scorecard ngrs-group">
-                    <div class="metric-label">Total TP NGRS * TP</div>
+                    <div class="metric-label">Total NGRS * TP</div>
                     <div class="metric-box">Rp {format_rupiah(total_tp)}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-        st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
+        st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
 
         # Tampilkan tabel per cluster jika ada tepat 6 cluster yang dipilih
@@ -868,7 +878,7 @@ def main():
                 "Total Transaksi LinkAja Reversal": [all_metrics[cluster]['alfred_reversal_row_count'] for cluster in selected_cluster_ids],
                 "Total Nilai (Rp) LinkAja Debit": [f"Rp {format_rupiah(all_metrics[cluster]['linkaja_total_debit'])}" for cluster in selected_cluster_ids],
                 "Total Nilai (Rp) LinkAja Credit": [f"Rp {format_rupiah(all_metrics[cluster]['linkaja_total_credit'])}" for cluster in selected_cluster_ids],
-                "Total Nilai Denom NGRS": [f"Rp {format_rupiah(all_metrics[cluster]['all_total_spend'])}" for cluster in selected_cluster_ids],
+                "Total Nilai Denom NGRS": [f" {format_rupiah(all_metrics[cluster]['all_total_spend'])}" for cluster in selected_cluster_ids],
                 "Total Nilai (Rp) LinkAja Outcluster": [f"Rp {format_rupiah(all_metrics[cluster]['alfred_total_amount'])}" for cluster in selected_cluster_ids],
                 "Total Nilai (Rp) LinkAja Reversal": [f"Rp {format_rupiah(all_metrics[cluster]['alfred_reversal_total_amount'])}" for cluster in selected_cluster_ids],
                 "Total Transaksi LinkAja": [all_metrics[cluster]['total_transaksi_linkaja'] for cluster in selected_cluster_ids],
@@ -1135,6 +1145,8 @@ def main():
                     df[col] = df[col].fillna('')
             return df
 
+
+        @st.cache_data
         def get_missing_numbers_in_ngrs():
             linkaja_df = fetch_linkaja_data()
             ngrs_df = fetch_ngrs_data()
@@ -1168,6 +1180,8 @@ def main():
 
             return pd.DataFrame(missing_numbers, columns=['NoRS'])
 
+
+        @st.cache_data
         def get_missing_numbers_in_linkaja():
             linkaja_df = fetch_linkaja_data()
             ngrs_df = fetch_ngrs_data()
@@ -1201,6 +1215,8 @@ def main():
 
             return pd.DataFrame(missing_numbers, columns=['NoChip'])
 
+
+        @st.cache_data
         def get_full_missing_in_ngrs():
             linkaja_df = fetch_linkaja_data()
             ngrs_df = fetch_ngrs_data()
@@ -1228,6 +1244,8 @@ def main():
 
             return full_missing_data
 
+
+        @st.cache_data
         def get_full_missing_in_linkaja():
             linkaja_df = fetch_linkaja_data()
             ngrs_df = fetch_ngrs_data()
@@ -1362,7 +1380,7 @@ def main():
                 st.markdown(
                     f"""
                     <div class="linkaja-missing-scorecard">
-                        <div class="linkaja-missing-metric-label">Total Transaksi NoChip Hilang</div>
+                        <div class="linkaja-missing-metric-label">Total Transaksi</div>
                         <div class="linkaja-missing-metric-value">{total_transactions_missing:,}</div>
                     </div>
                     """,
@@ -1373,7 +1391,7 @@ def main():
                 st.markdown(
                     f"""
                     <div class="linkaja-missing-scorecard">
-                        <div class="linkaja-missing-metric-label">Total Nilai Transaksi NoChip Hilang </div>
+                        <div class="linkaja-missing-metric-label">Total Nilai Transaksi </div>
                         <div class="linkaja-missing-metric-value"> {format_rupiah(total_value_missing)}</div>
                     </div>
                     """,
