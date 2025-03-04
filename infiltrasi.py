@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from io import BytesIO
 
 # Fungsi untuk menginisialisasi BigQuery client dari secrets
+@st.cache_resource
 def get_bigquery_client():
     try:
         credentials_json = st.secrets["bigquery"]["credentials"]
@@ -20,6 +21,7 @@ def get_bigquery_client():
         return None
 
 # Fungsi untuk mengambil data agregat dari BigQuery (untuk scorecard dan tabel)
+@st.cache_data
 def fetch_aggregate_data(table_name, count_column, sum_column, date_column, start_date, end_date, 
                         cluster_column, selected_clusters, transaction_scenario, filter_column, filter_not_zero):
     client = get_bigquery_client()
@@ -52,6 +54,7 @@ def format_rupiah(value):
     return f"{value:,.0f}".replace(",", ".")
 
 # Fungsi untuk mengambil data CounterParty (untuk grafik treemap/bubble)
+@st.cache_data
 def fetch_counterparty_data(table_name, date_column, start_date, end_date, cluster_column, selected_clusters, transaction_scenario):
     client = get_bigquery_client()
     if client is None:
@@ -80,6 +83,7 @@ def fetch_counterparty_data(table_name, date_column, start_date, end_date, clust
         return pd.DataFrame()
 
 # Fungsi untuk mengambil data mentah dari tabel BigQuery (untuk download)
+@st.cache_data
 def fetch_raw_data(table_name, date_column, start_date, end_date, cluster_column, selected_clusters, transaction_scenario):
     client = get_bigquery_client()
     if client is None:
@@ -102,6 +106,7 @@ def fetch_raw_data(table_name, date_column, start_date, end_date, cluster_column
         return pd.DataFrame()
 
 # Fungsi untuk mengambil data timeseries (jumlah transaksi)
+@st.cache_data
 def fetch_timeseries_data(table_name, date_column, start_date, end_date, cluster_column, selected_clusters, transaction_scenario):
     client = get_bigquery_client()
     if client is None:
@@ -129,6 +134,7 @@ def fetch_timeseries_data(table_name, date_column, start_date, end_date, cluster
         return pd.DataFrame()
 
 # Fungsi baru untuk mengambil data timeseries (nilai transaksi)
+@st.cache_data
 def fetch_timeseries_value_data(table_name, date_column, start_date, end_date, cluster_column, selected_clusters, transaction_scenario):
     client = get_bigquery_client()
     if client is None:
@@ -283,13 +289,13 @@ def main():
         st.markdown("""<div class="scorecard-container">""", unsafe_allow_html=True)
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.markdown(f'<div class="scorecard"><div class="metric-label">Total Transaksi Infiltrasi Out Cluster</div><div class="metric-value">{total_out_cluster:,}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="scorecard"><div class="metric-label">Total Transaksi Infiltrasi Rech In</div><div class="metric-value">{total_out_cluster:,}</div></div>', unsafe_allow_html=True)
         with col2:
-            st.markdown(f'<div class="scorecard"><div class="metric-label">Total Transaksi Infiltrasi In Cluster</div><div class="metric-value">{total_in_cluster:,}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="scorecard"><div class="metric-label">Total Transaksi Infiltrasi Rech Out</div><div class="metric-value">{total_in_cluster:,}</div></div>', unsafe_allow_html=True)
         with col3:
-            st.markdown(f'<div class="scorecard"><div class="metric-label">Nilai Transaksi Out Cluster</div><div class="metric-value">Rp {format_rupiah(value_out_cluster)}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="scorecard"><div class="metric-label">Nilai Transaksi Rech In</div><div class="metric-value">Rp {format_rupiah(value_out_cluster)}</div></div>', unsafe_allow_html=True)
         with col4:
-            st.markdown(f'<div class="scorecard"><div class="metric-label">Nilai Transaksi In Cluster</div><div class="metric-value">Rp {format_rupiah(value_in_cluster)}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="scorecard"><div class="metric-label">Nilai Transaksi Rech Out</div><div class="metric-value">Rp {format_rupiah(value_in_cluster)}</div></div>', unsafe_allow_html=True)
         st.markdown("""</div>""", unsafe_allow_html=True)
 
         if not df_combined.empty:
@@ -300,7 +306,7 @@ def main():
             df_display = df_combined.copy()
             df_display["value_out_cluster"] = df_display["value_out_cluster"].apply(lambda x: f"Rp {format_rupiah(x)}")
             df_display["value_in_cluster"] = df_display["value_in_cluster"].apply(lambda x: f"Rp {format_rupiah(x)}")
-            df_display.columns = ["Cluster ID", "Total Transaksi Out", "Nilai Transaksi Out", "Total Transaksi In", "Nilai Transaksi In"]
+            df_display.columns = ["Cluster ID", "Total Transaksi Rech In", "Nilai Transaksi Rech In", "Total Transaksi Rech Out", "Nilai Transaksi Rech Out"]
             st.dataframe(df_display, use_container_width=True)
 
             chart_type = st.sidebar.selectbox("Pilih Jenis Grafik", ["Treemap", "Bubble Chart"], key="chart_type")
@@ -351,7 +357,7 @@ def main():
                                     x=df_timeseries["date"],
                                     y=df_timeseries["total_out_cluster"],
                                     mode="lines+markers+text",
-                                    name="Total Transaksi Out Cluster",
+                                    name="Total Transaksi Rech In",
                                     line=dict(color="blue"),
                                     marker=dict(size=8),
                                     text=df_timeseries["total_out_cluster"],
@@ -364,7 +370,7 @@ def main():
                                     x=df_timeseries["date"],
                                     y=df_timeseries["total_in_cluster"],
                                     mode="lines+markers+text",
-                                    name="Total Transaksi In Cluster",
+                                    name="Total Transaksi Rech Out Cluster",
                                     line=dict(color="orange"),
                                     marker=dict(size=8),
                                     text=df_timeseries["total_in_cluster"],
@@ -402,7 +408,7 @@ def main():
                                     x=df_timeseries_value["date"],
                                     y=df_timeseries_value["value_out_cluster"],
                                     mode="lines+markers+text",
-                                    name="Nilai Transaksi Out Cluster",
+                                    name="Nilai Transaksi Rech In",
                                     line=dict(color="blue"),
                                     marker=dict(size=8),
                                     text=df_timeseries_value["value_out_cluster"].apply(lambda x: f"Rp {format_rupiah(x)}"),
@@ -415,7 +421,7 @@ def main():
                                     x=df_timeseries_value["date"],
                                     y=df_timeseries_value["value_in_cluster"],
                                     mode="lines+markers+text",
-                                    name="Nilai Transaksi In Cluster",
+                                    name="Nilai Transaksi Rech Out",
                                     line=dict(color="orange"),
                                     marker=dict(size=8),
                                     text=df_timeseries_value["value_in_cluster"].apply(lambda x: f"Rp {format_rupiah(x)}"),
