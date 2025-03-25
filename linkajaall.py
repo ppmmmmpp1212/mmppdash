@@ -163,7 +163,7 @@ def fetch_total_tp(start_date, end_date, selected_transaction_types, selected_cl
             COALESCE(SUM(
                 CASE 
                     WHEN a.SpendAmount BETWEEN r.Start_Denom AND r.End_Denom 
-                    THEN (a.SpendAmount * (r.Harga_TP / 100)) - 20
+                    THEN (a.SpendAmount * (r.Harga_TP___ / 100)) - 20
                     ELSE 0 
                 END
             ), 0) AS Total_TP
@@ -251,7 +251,7 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
                 COALESCE(SUM(
                     CASE 
                         WHEN a.SpendAmount BETWEEN r.Start_Denom AND r.End_Denom 
-                        THEN (a.SpendAmount * (r.Harga_TP / 100)) - 20
+                        THEN (a.SpendAmount * (r.Harga_TP___ / 100)) - 20
                         ELSE 0 
                     END
                 ), 0) AS total_tp
