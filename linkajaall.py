@@ -162,7 +162,7 @@ def fetch_total_tp(start_date, end_date, selected_transaction_types, selected_cl
         SELECT 
             COALESCE(SUM(
                 CASE 
-                    WHEN a.SpendAmount BETWEEN r.Start_Denom AND r.End_Denom 
+                    WHEN a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom 
                     THEN (a.SpendAmount * (r.TP / 100)) - 20
                     ELSE 0 
                 END
@@ -172,7 +172,7 @@ def fetch_total_tp(start_date, end_date, selected_transaction_types, selected_cl
         LEFT JOIN 
             `alfred-analytics-406004.analytics_alfred.rate_ngrs_reguler` r
         ON 
-            a.SpendAmount BETWEEN r.Start_Denom AND r.End_Denom
+            a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom
             AND a.dt BETWEEN r.Start_Date AND r.End_Date
             AND a.ClusterID = r.ClusterID  
         WHERE 
@@ -250,14 +250,14 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
                 COALESCE(SUM(CAST(SpendAmount AS FLOAT64)), 0) AS ngrs_amount,
                 COALESCE(SUM(
                     CASE 
-                        WHEN a.SpendAmount BETWEEN r.Start_Denom AND r.End_Denom 
+                        WHEN a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom 
                         THEN (a.SpendAmount * (r.TP / 100)) - 20
                         ELSE 0 
                     END
                 ), 0) AS total_tp
             FROM `alfred-analytics-406004.analytics_alfred.All_pjpnonpjp` a
             LEFT JOIN `alfred-analytics-406004.analytics_alfred.rate_ngrs_reguler` r
-            ON a.SpendAmount BETWEEN r.Start_Denom AND r.End_Denom
+            ON a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom
                 AND a.dt BETWEEN r.Start_Date AND r.End_Date
                 AND a.ClusterID = r.ClusterID
             WHERE DATE(Completion) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
