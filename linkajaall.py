@@ -163,7 +163,7 @@ def fetch_total_tp(start_date, end_date, selected_transaction_types, selected_cl
             COALESCE(SUM(
                 CASE 
                     WHEN a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom 
-                    THEN (a.SpendAmount * (r.TP / 100)) - 20
+                    THEN (a.SpendAmount * (r.TP / 100))
                     ELSE 0 
                 END
             ), 0) AS Total_TP
