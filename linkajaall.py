@@ -698,12 +698,14 @@ def main():
                 unsafe_allow_html=True
             )
 
+        st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
 
         # Divider antar grup
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-
+        # Grup 2: Nilai Transaksi LinkAja dengan border (sesuai desain grup 1)
+        st.markdown("<div class='group-header-font'>Nilai Transaksi LinkAja (Rp)</div>", unsafe_allow_html=True)
 
         # Kolom untuk scorecards
         col5, col6, col7, col8 = st.columns(4)
@@ -752,9 +754,11 @@ def main():
                 unsafe_allow_html=True
             )
 
+        st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
 
- 
+        # Divider antar grup
+        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
         # Grup 3: Transaksi & Nilai Finpay dengan border (sesuai desain grup 1)
         st.markdown("<div class='group-header-font'>Transaksi & Nilai Finpay</div>", unsafe_allow_html=True)
@@ -784,15 +788,18 @@ def main():
                 unsafe_allow_html=True
             )
 
+        st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
 
-        # Divider 
-       # Grup 4: Transaksi dan Nilai NGRS dengan border
+        # Divider antar grup
+        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+
+        # Grup 4: Transaksi dan Nilai NGRS dengan border (sesuai desain grup 1)
         st.markdown("<div class='group-header-font'>Transaksi & Nilai NGRS</div>", unsafe_allow_html=True)
-        
-        # Kolom untuk scorecards (kembali ke 3 kolom)
+
+        # Kolom untuk scorecards
         col9, col10, col11 = st.columns(3)
-        
+
         with col9:
             st.markdown(
                 f"""
@@ -803,7 +810,7 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-        
+
         with col10:
             st.markdown(
                 f"""
@@ -814,7 +821,7 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-        
+
         with col11:
             st.markdown(
                 f"""
@@ -825,24 +832,34 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
+
+        with col12:
+            st.markdown(
+                f"""
+                <div class="scorecard ngrs-group">
+                    <div class="metric-label">Total Transaksi Akuisisi</div>
+                    <div class="metric-box">{total_trx_acquisition:,}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         
+        with col13:
+            st.markdown(
+                f"""
+                <div class="scorecard ngrs-group">
+                    <div class="metric-label">Total Nilai Akuisisi</div>
+                    <div class="metric-box">Rp {format_rupiah(total_amount_acquisition)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
-        
- 
-        
-        # Grup Baru: Transaksi dan Nilai Akuisisi
-        st.markdown("<div class='group-header-font'>Transaksi & Nilai Akuisisi</div>", unsafe_allow_html=True)
-        col14, col15 = st.columns(2)
-        with col14:
-            st.markdown(f'<div class="scorecard ngrs-group"><div class="metric-label">Total Transaksi Akuisisi</div><div class="metric-box">{total_trx_acquisition:,}</div></div>', unsafe_allow_html=True)
-        with col15:
-            st.markdown(f'<div class="scorecard ngrs-group"><div class="metric-label">Total Nilai Akuisisi</div><div class="metric-box">Rp {format_rupiah(total_amount_acquisition)}</div></div>', unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
+        # Divider antar grup
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
-    
-
-
 
         # Grup 5: Ringkasan Tambahan dengan border (sesuai desain grup 1)
         st.markdown("<div class='group-header-font'>Total Transaksi NGRS & LinkAja</div>", unsafe_allow_html=True)
@@ -941,6 +958,7 @@ def main():
             else:  # Jika tidak dimulai dengan 8 atau 6, kembalikan nomor asli tanpa perubahan
                 return number
         
+        st.markdown("""</div>""", unsafe_allow_html=True)  # Tutup group-border
         st.markdown("""</div>""", unsafe_allow_html=True)  # Tutup group-border
 
         with st.spinner("Menyiapkan data untuk Excel dan grafik..."):
