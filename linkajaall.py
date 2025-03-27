@@ -187,7 +187,30 @@ def fetch_total_tp(start_date, end_date, selected_transaction_types, selected_cl
         st.error(f"Terjadi kesalahan saat mengambil Total_TP: {e}")
         return 0
 
-
+@st.cache_data
+def fetch_acquisition_data(start_date, end_date, selected_cluster_ids):
+    client = get_bigquery_client()
+    if client is None:
+        return 0, 0
+    
+    try:
+        query = f"""
+        SELECT 
+            COUNT(*) AS total_trx_acquisition,
+            COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS total_amount_acquisition
+        FROM 
+            `alfred-analytics-406004.analytics_alfred.alfred_ngrs_akui`
+        WHERE 
+            DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+            AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+        """
+        result = client.query(query).to_dataframe()
+        total_trx = int(result["total_trx_acquisition"].iloc[0])
+        total_amount = float(result["total_amount_acquisition"].iloc[0])
+        return total_trx, total_amount
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat mengambil data Akuisisi dari alfred_ngrs_akui: {e}")
+        return 0, 0
 
 @st.cache_data
 def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, selected_cluster_ids):
@@ -497,6 +520,12 @@ def main():
                     end_date=end_date,
                     selected_cluster_ids=[cluster]
                 )
+
+                cluster_metrics['total_trx_acquisition'], cluster_metrics['total_amount_acquisition'] = fetch_acquisition_data(
+                    start_date=start_date,
+                    end_date=end_date,
+                    selected_cluster_ids=[cluster]
+                )
                         # Perhitungan tambahan
                 # Perhitungan tambahan (diperbarui untuk menyertakan Finpay)
                 cluster_metrics['total_transaksi_linkaja'] = (cluster_metrics['linkaja_row_count_debit'] + 
@@ -533,7 +562,9 @@ def main():
         fee = sum(m['fee'] for m in all_metrics.values())
         total_tp = sum(m['total_tp'] for m in all_metrics.values())
 
-        # Tampilan scorecard overview (sama seperti sebelumnya)
+        # Hitung total akuisisi (dari alfred_ngrs_akui)
+        total_trx_acquisition = sum(m['total_trx_acquisition'] for m in all_metrics.values())
+        total_amount_acquisition = sum(m['total_amount_acquisition'] for m in all_metrics.values())
         # Tambahkan CSS untuk styling (digunakan untuk semua grup)
         st.markdown(
             """
@@ -886,6 +917,8 @@ def main():
                 "Total Nilai Transaksi LinkAja": [f"Rp {format_rupiah(all_metrics[cluster]['total_nilai_transaksi_ngrs'])}" for cluster in selected_cluster_ids],
                 "Total Nilai Denom NGRS": [f"Rp {format_rupiah(all_metrics[cluster]['all_total_spend'])}" for cluster in selected_cluster_ids],
                 "Fee": [f"Rp {format_rupiah(all_metrics[cluster]['fee'])}" for cluster in selected_cluster_ids]
+                "Total Transaksi Akuisisi": [all_metrics[cluster]['total_trx_acquisition'] for cluster in selected_cluster_ids],
+                "Total Nilai Akuisisi": [f"Rp {format_rupiah(all_metrics[cluster]['total_amount_acquisition'])}" for cluster in selected_cluster_ids]
             }
             df_cluster = pd.DataFrame(cluster_data)
 
