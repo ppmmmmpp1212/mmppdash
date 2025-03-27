@@ -916,7 +916,7 @@ def main():
                 "Total Transaksi NGRS": [all_metrics[cluster]['all_row_count'] for cluster in selected_cluster_ids],
                 "Total Nilai Transaksi LinkAja": [f"Rp {format_rupiah(all_metrics[cluster]['total_nilai_transaksi_ngrs'])}" for cluster in selected_cluster_ids],
                 "Total Nilai Denom NGRS": [f"Rp {format_rupiah(all_metrics[cluster]['all_total_spend'])}" for cluster in selected_cluster_ids],
-                "Fee": [f"Rp {format_rupiah(all_metrics[cluster]['fee'])}" for cluster in selected_cluster_ids]
+                "Fee": [f"Rp {format_rupiah(all_metrics[cluster]['fee'])}" for cluster in selected_cluster_ids],
                 "Total Transaksi Akuisisi": [all_metrics[cluster]['total_trx_acquisition'] for cluster in selected_cluster_ids],
                 "Total Nilai Akuisisi": [f"Rp {format_rupiah(all_metrics[cluster]['total_amount_acquisition'])}" for cluster in selected_cluster_ids]
             }
