@@ -794,12 +794,12 @@ def main():
         # Divider antar grup
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-        # Grup 4: Transaksi dan Nilai NGRS dengan border (sesuai desain grup 1)
+       # Grup 4: Transaksi dan Nilai NGRS dengan border
         st.markdown("<div class='group-header-font'>Transaksi & Nilai NGRS</div>", unsafe_allow_html=True)
-
-        # Kolom untuk scorecards
-        col9, col10, col11, col12, col13 = st.columns(5)
-
+        
+        # Kolom untuk scorecards (kembali ke 3 kolom)
+        col9, col10, col11 = st.columns(3)
+        
         with col9:
             st.markdown(
                 f"""
@@ -810,7 +810,7 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-
+        
         with col10:
             st.markdown(
                 f"""
@@ -821,7 +821,7 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-
+        
         with col11:
             st.markdown(
                 f"""
@@ -832,7 +832,19 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-
+        
+        st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
+        st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
+        
+        # Divider antar grup
+        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+        
+        # Grup Baru: Transaksi dan Nilai Akuisisi
+        st.markdown("<div class='group-header-font'>Transaksi & Nilai Akuisisi</div>", unsafe_allow_html=True)
+        
+        # Kolom untuk scorecards (2 kolom)
+        col12, col13 = st.columns(2)
+        
         with col12:
             st.markdown(
                 f"""
@@ -854,7 +866,7 @@ def main():
                 """,
                 unsafe_allow_html=True
             )
-
+        
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
 
