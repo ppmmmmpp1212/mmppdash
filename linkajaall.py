@@ -223,6 +223,42 @@ def fetch_acquisition_data(start_date, end_date, selected_cluster_ids):
         return 0, 0
 
 @st.cache_data
+def fetch_roaming_data(start_date, end_date, selected_cluster_ids):
+    client = get_bigquery_client()
+    if client is None:
+        return 0, 0
+    
+    try:
+        transaction_types = [
+            'Organization eMoneyPackage Voucher Injection with Bulk Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk ROAMING Account via API with TP',
+            'Organization eMoney Voucher Injection with Bulk Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk Account via API with TP',
+            'Organization eMoneyPackage Voucher Injection with Bulk ROAMING Account via API with TP'
+        ]
+        transaction_types_str = ', '.join([f"'{ttype}'" for ttype in transaction_types])
+        
+        query = f"""
+        SELECT 
+            COUNT(*) AS total_trx_roaming,
+            COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS total_amount_roaming
+        FROM 
+            `alfred-analytics-406004.analytics_alfred.ngrs_roaming_alfred`
+        WHERE 
+            DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+            AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+            AND TransactionType IN ({transaction_types_str})
+        """
+        result = client.query(query).to_dataframe()
+        total_trx = int(result["total_trx_roaming"].iloc[0])
+        total_amount = float(result["total_amount_roaming"].iloc[0])
+        return total_trx, total_amount
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat mengambil data Roaming dari ngrs_roaming_alfred: {e}")
+        return 0, 0
+
+
+@st.cache_data
 def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, selected_cluster_ids):
     client = get_bigquery_client()
     if client is None:
@@ -236,7 +272,15 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             'Organization eMoney Buy Airtime with Bulk Account via API with TP',
             'Organization eMoneyPackage Voucher Injection with Bulk AKUISISI Account via API with TP'
         ]
+        roaming_transaction_types = [
+            'Organization eMoneyPackage Voucher Injection with Bulk Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk ROAMING Account via API with TP',
+            'Organization eMoney Voucher Injection with Bulk Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk Account via API with TP',
+            'Organization eMoneyPackage Voucher Injection with Bulk ROAMING Account via API with TP'
+        ]
         acquisition_types_str = ', '.join([f"'{ttype}'" for ttype in acquisition_transaction_types])
+        roaming_types_str = ', '.join([f"'{ttype}'" for ttype in roaming_transaction_types])
         
         query = f"""
         WITH LinkAjaDebit AS (
@@ -317,22 +361,36 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND TransactionType IN ({acquisition_types_str})
             GROUP BY DATE(dt)
+        ),
+        Roaming AS (
+            SELECT 
+                DATE(dt) AS date,
+                COUNT(*) AS roaming_count,
+                COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS roaming_amount
+            FROM `alfred-analytics-406004.analytics_alfred.ngrs_roaming_alfred`
+            WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+                AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+                AND TransactionType IN ({roaming_types_str})
+            GROUP BY DATE(dt)
         )
         SELECT 
-            COALESCE(n.date, l.date, a.date, r.date, f.date, acq.date) AS Date,
+            COALESCE(n.date, l.date, a.date, r.date, f.date, acq.date, roam.date) AS Date,
             COALESCE(n.ngrs_count, 0) AS Total_Transaksi_NGRS,
             COALESCE(n.ngrs_amount, 0) AS Total_Nilai_Denom_NGRS,
             COALESCE(n.total_tp, 0) AS Total_TP_NGRS,
             COALESCE(l.linkaja_debit_count, 0) + COALESCE(a.alfred_count, 0) - COALESCE(r.reversal_count, 0) + COALESCE(f.finpay_count, 0) AS Total_Transaksi_LinkAja_Finpay,
             COALESCE(l.linkaja_debit_amount, 0) + COALESCE(a.alfred_amount, 0) - COALESCE(r.reversal_amount, 0) + COALESCE(f.finpay_amount, 0) AS Total_Nilai_Transaksi_LinkAja_Finpay,
             COALESCE(acq.acquisition_count, 0) AS Total_Transaksi_Akuisisi,
-            COALESCE(acq.acquisition_amount, 0) AS Total_Nilai_Akuisisi
+            COALESCE(acq.acquisition_amount, 0) AS Total_Nilai_Akuisisi,
+            COALESCE(roam.roaming_count, 0) AS Total_Transaksi_Roaming,
+            COALESCE(roam.roaming_amount, 0) AS Total_Nilai_Roaming
         FROM NGRS n
         FULL OUTER JOIN LinkAjaDebit l ON n.date = l.date
         FULL OUTER JOIN AlfredLinkAja a ON n.date = a.date
         FULL OUTER JOIN AlfredReversal r ON n.date = r.date
         FULL OUTER JOIN Finpay f ON n.date = f.date
         FULL OUTER JOIN Acquisition acq ON n.date = acq.date
+        FULL OUTER JOIN Roaming roam ON n.date = roam.date
         ORDER BY Date
         """
         df = client.query(query).to_dataframe()
@@ -340,7 +398,8 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
         df['Date'] = pd.to_datetime(df['Date']).dt.date
         numeric_columns = ['Total_Transaksi_NGRS', 'Total_Nilai_Denom_NGRS', 'Total_TP_NGRS', 
                           'Total_Transaksi_LinkAja_Finpay', 'Total_Nilai_Transaksi_LinkAja_Finpay',
-                          'Total_Transaksi_Akuisisi', 'Total_Nilai_Akuisisi']
+                          'Total_Transaksi_Akuisisi', 'Total_Nilai_Akuisisi',
+                          'Total_Transaksi_Roaming', 'Total_Nilai_Roaming']
         for col in numeric_columns:
             df[col] = df[col].fillna(0)
         
@@ -559,6 +618,13 @@ def main():
                     end_date=end_date,
                     selected_cluster_ids=[cluster]
                 )
+
+
+                cluster_metrics['total_trx_roaming'], cluster_metrics['total_amount_roaming'] = fetch_roaming_data(
+                    start_date=start_date,
+                    end_date=end_date,
+                    selected_cluster_ids=[cluster]
+                )
                         # Perhitungan tambahan
                 # Perhitungan tambahan (diperbarui untuk menyertakan Finpay)
                 cluster_metrics['total_transaksi_linkaja'] = (cluster_metrics['linkaja_row_count_debit'] + 
@@ -598,6 +664,9 @@ def main():
         # Hitung total akuisisi (dari alfred_ngrs_akui)
         total_trx_acquisition = sum(m['total_trx_acquisition'] for m in all_metrics.values())
         total_amount_acquisition = sum(m['total_amount_acquisition'] for m in all_metrics.values())
+        # Hitung total untuk overview
+        total_trx_roaming = sum(m['total_trx_roaming'] for m in all_metrics.values())
+        total_amount_roaming = sum(m['total_amount_roaming'] for m in all_metrics.values())
         # Tambahkan CSS untuk styling (digunakan untuk semua grup)
         st.markdown(
             """
@@ -896,6 +965,19 @@ def main():
         
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
+
+
+        # Grup Baru: Transaksi & Nilai Roaming
+        st.markdown("<div class='group-header-font'>Transaksi & Nilai Roaming</div>", unsafe_allow_html=True)
+        col20, col21 = st.columns(2)
+        with col20:
+            st.markdown(f'<div class="scorecard ngrs-group"><div class="metric-label">Total Transaksi Roaming</div><div class="metric-box">{total_trx_roaming:,}</div></div>', unsafe_allow_html=True)
+        with col21:
+            st.markdown(f'<div class="scorecard ngrs-group"><div class="metric-label">Total Nilai Roaming</div><div class="metric-box">Rp {format_rupiah(total_amount_roaming)}</div></div>', unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+
+
         # Divider antar grup
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
@@ -980,7 +1062,8 @@ def main():
                 "Total Nilai Denom NGRS": [f"Rp {format_rupiah(all_metrics[cluster]['all_total_spend'])}" for cluster in selected_cluster_ids],
                 "Fee": [f"Rp {format_rupiah(all_metrics[cluster]['fee'])}" for cluster in selected_cluster_ids],
                 "Total Transaksi Akuisisi": [all_metrics[cluster]['total_trx_acquisition'] for cluster in selected_cluster_ids],
-                "Total Nilai Akuisisi": [f"Rp {format_rupiah(all_metrics[cluster]['total_amount_acquisition'])}" for cluster in selected_cluster_ids]
+                "Total Nilai Akuisisi": [f"Rp {format_rupiah(all_metrics[cluster]['total_amount_acquisition'])}" for cluster in selected_cluster_ids],
+                "Total Nilai Roaming": [f"Rp {format_rupiah(all_metrics[cluster]['total_amount_roaming'])}" for cluster in selected_cluster_ids]
             }
             df_cluster = pd.DataFrame(cluster_data)
 
@@ -1062,6 +1145,7 @@ def main():
                 df_for_excel['Total_TP_NGRS'] = df_for_excel['Total_TP_NGRS'].apply(format_rupiah)
                 df_for_excel['Total_Nilai_Transaksi_LinkAja_Finpay'] = df_for_excel['Total_Nilai_Transaksi_LinkAja_Finpay'].apply(format_rupiah)
                 df_for_excel['Total_Nilai_Akuisisi'] = df_for_excel['Total_Nilai_Akuisisi'].apply(format_rupiah)
+                df_for_excel['Total_Nilai_Roaming'] = df_for_excel['Total_Nilai_Roaming'].apply(format_rupiah)
                 
                 # Generate Excel file
                 excel_data = to_excel(df_for_excel)
