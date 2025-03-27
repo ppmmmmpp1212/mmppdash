@@ -94,6 +94,32 @@ def fetch_aggregate_data(table_name, count_column=None, sum_column=None, date_co
         st.error(f"Terjadi kesalahan saat mengambil agregasi dari {table_name}: {e}")
         return 0, 0
 
+@st.cache_data
+def fetch_acquisition_data(start_date, end_date, selected_cluster_ids):
+    client = get_bigquery_client()
+    if client is None:
+        return 0, 0
+    
+    try:
+        query = f"""
+        SELECT 
+            COUNT(*) AS total_trx_acquisition,
+            COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS total_amount_acquisition
+        FROM 
+            `alfred-analytics-406004.analytics_alfred.alfred_ngrs_akui`
+        WHERE 
+            DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+            AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+        """
+        result = client.query(query).to_dataframe()
+        total_trx = int(result["total_trx_acquisition"].iloc[0])
+        total_amount = float(result["total_amount_acquisition"].iloc[0])
+        return total_trx, total_amount
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat mengambil data Akuisisi dari alfred_ngrs_akui: {e}")
+        return 0, 0
+
+
 # Fungsi untuk format Rupiah
 def format_rupiah(value):
     return f"{value:,.0f}".replace(",", ".")
@@ -497,6 +523,12 @@ def main():
                     end_date=end_date,
                     selected_cluster_ids=[cluster]
                 )
+
+                cluster_metrics['total_trx_acquisition'], cluster_metrics['total_amount_acquisition'] = fetch_acquisition_data(
+                    start_date=start_date,
+                    end_date=end_date,
+                    selected_cluster_ids=[cluster]
+                )
                         # Perhitungan tambahan
                 # Perhitungan tambahan (diperbarui untuk menyertakan Finpay)
                 cluster_metrics['total_transaksi_linkaja'] = (cluster_metrics['linkaja_row_count_debit'] + 
@@ -532,7 +564,8 @@ def main():
         total_nilai_transaksi_ngrs = sum(m['total_nilai_transaksi_ngrs'] for m in all_metrics.values())
         fee = sum(m['fee'] for m in all_metrics.values())
         total_tp = sum(m['total_tp'] for m in all_metrics.values())
-
+        total_trx_acquisition = sum(m['total_trx_acquisition'] for m in all_metrics.values())
+        total_amount_acquisition = sum(m['total_amount_acquisition'] for m in all_metrics.values())
         # Tampilan scorecard overview (sama seperti sebelumnya)
         # Tambahkan CSS untuk styling (digunakan untuk semua grup)
         st.markdown(
@@ -800,6 +833,28 @@ def main():
                 unsafe_allow_html=True
             )
 
+        with col12:
+            st.markdown(
+                f"""
+                <div class="scorecard ngrs-group">
+                    <div class="metric-label">Total Transaksi Akuisisi</div>
+                    <div class="metric-box">{total_trx_acquisition:,}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        with col13:
+            st.markdown(
+                f"""
+                <div class="scorecard ngrs-group">
+                    <div class="metric-label">Total Nilai Akuisisi</div>
+                    <div class="metric-box">Rp {format_rupiah(total_amount_acquisition)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
 
@@ -886,6 +941,8 @@ def main():
                 "Total Nilai Transaksi LinkAja": [f"Rp {format_rupiah(all_metrics[cluster]['total_nilai_transaksi_ngrs'])}" for cluster in selected_cluster_ids],
                 "Total Nilai Denom NGRS": [f"Rp {format_rupiah(all_metrics[cluster]['all_total_spend'])}" for cluster in selected_cluster_ids],
                 "Fee": [f"Rp {format_rupiah(all_metrics[cluster]['fee'])}" for cluster in selected_cluster_ids]
+                "Total Transaksi Akuisisi": [all_metrics[cluster]['total_trx_acquisition'] for cluster in selected_cluster_ids],
+                "Total Nilai Akuisisi": [f"Rp {format_rupiah(all_metrics[cluster]['total_amount_acquisition'])}" for cluster in selected_cluster_ids]
             }
             df_cluster = pd.DataFrame(cluster_data)
 
