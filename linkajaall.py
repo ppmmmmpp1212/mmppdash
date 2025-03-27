@@ -243,7 +243,7 @@ def fetch_roaming_data(start_date, end_date, selected_cluster_ids):
             COUNT(*) AS total_trx_roaming,
             COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS total_amount_roaming
         FROM 
-            `alfred-analytics-406004.analytics_alfred.ngrs_roaming_alfred`
+            `alfred-analytics-406004.analytics_alfred.ngrs_roaming`
         WHERE 
             DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
             AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
@@ -254,7 +254,7 @@ def fetch_roaming_data(start_date, end_date, selected_cluster_ids):
         total_amount = float(result["total_amount_roaming"].iloc[0])
         return total_trx, total_amount
     except Exception as e:
-        st.error(f"Terjadi kesalahan saat mengambil data Roaming dari ngrs_roaming_alfred: {e}")
+        st.error(f"Terjadi kesalahan saat mengambil data Roaming dari ngrs_roaming: {e}")
         return 0, 0
 
 
@@ -367,7 +367,7 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
                 DATE(dt) AS date,
                 COUNT(*) AS roaming_count,
                 COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS roaming_amount
-            FROM `alfred-analytics-406004.analytics_alfred.ngrs_roaming_alfred`
+            FROM `alfred-analytics-406004.analytics_alfred.ngrs_roaming`
             WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND TransactionType IN ({roaming_types_str})
