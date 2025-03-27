@@ -231,10 +231,10 @@ def fetch_roaming_data(start_date, end_date, selected_cluster_ids):
     try:
         transaction_types = [
             'Organization eMoneyPackage Voucher Injection with Bulk Account via API with TP',
-            'Organization eMoney Buy Airtime with Bulk ROAMING Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk Roaming Account via API with TP',
             'Organization eMoney Voucher Injection with Bulk Account via API with TP',
             'Organization eMoney Buy Airtime with Bulk Account via API with TP',
-            'Organization eMoneyPackage Voucher Injection with Bulk ROAMING Account via API with TP'
+            'Organization eMoneyPackage Voucher Injection with Bulk Roaming Account via API with TP'
         ]
         transaction_types_str = ', '.join([f"'{ttype}'" for ttype in transaction_types])
         
@@ -274,10 +274,10 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
         ]
         roaming_transaction_types = [
             'Organization eMoneyPackage Voucher Injection with Bulk Account via API with TP',
-            'Organization eMoney Buy Airtime with Bulk ROAMING Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk Roaming Account via API with TP',
             'Organization eMoney Voucher Injection with Bulk Account via API with TP',
             'Organization eMoney Buy Airtime with Bulk Account via API with TP',
-            'Organization eMoneyPackage Voucher Injection with Bulk ROAMING Account via API with TP'
+            'Organization eMoneyPackage Voucher Injection with Bulk Roaming Account via API with TP'
         ]
         acquisition_types_str = ', '.join([f"'{ttype}'" for ttype in acquisition_transaction_types])
         roaming_types_str = ', '.join([f"'{ttype}'" for ttype in roaming_transaction_types])
