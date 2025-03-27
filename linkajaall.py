@@ -194,6 +194,15 @@ def fetch_acquisition_data(start_date, end_date, selected_cluster_ids):
         return 0, 0
     
     try:
+        transaction_types = [
+            'Organization eMoneyPackage Voucher Injection with Bulk Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk AKUISISI Account via API with TP',
+            'Organization eMoney Voucher Injection with Bulk Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk Account via API with TP',
+            'Organization eMoneyPackage Voucher Injection with Bulk AKUISISI Account via API with TP'
+        ]
+        transaction_types_str = ', '.join([f"'{ttype}'" for ttype in transaction_types])
+        
         query = f"""
         SELECT 
             COUNT(*) AS total_trx_acquisition,
@@ -203,6 +212,7 @@ def fetch_acquisition_data(start_date, end_date, selected_cluster_ids):
         WHERE 
             DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
             AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+            AND TransactionType IN ({transaction_types_str})
         """
         result = client.query(query).to_dataframe()
         total_trx = int(result["total_trx_acquisition"].iloc[0])
@@ -219,6 +229,15 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
         return pd.DataFrame()
     
     try:
+        acquisition_transaction_types = [
+            'Organization eMoneyPackage Voucher Injection with Bulk Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk AKUISISI Account via API with TP',
+            'Organization eMoney Voucher Injection with Bulk Account via API with TP',
+            'Organization eMoney Buy Airtime with Bulk Account via API with TP',
+            'Organization eMoneyPackage Voucher Injection with Bulk AKUISISI Account via API with TP'
+        ]
+        acquisition_types_str = ', '.join([f"'{ttype}'" for ttype in acquisition_transaction_types])
+        
         query = f"""
         WITH LinkAjaDebit AS (
             SELECT 
@@ -296,6 +315,7 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             FROM `alfred-analytics-406004.analytics_alfred.alfred_ngrs_akui`
             WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+                AND TransactionType IN ({acquisition_types_str})
             GROUP BY DATE(dt)
         )
         SELECT 
