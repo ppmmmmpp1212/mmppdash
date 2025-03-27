@@ -287,27 +287,40 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
                 AND a.ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND a.TransactionType IN ({', '.join([f"'{ttype}'" for ttype in selected_transaction_types_ngrs])})
             GROUP BY DATE(Completion)
+        ),
+        Acquisition AS (
+            SELECT 
+                DATE(dt) AS date,
+                COUNT(*) AS acquisition_count,
+                COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS acquisition_amount
+            FROM `alfred-analytics-406004.analytics_alfred.alfred_ngrs_akui`
+            WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+                AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+            GROUP BY DATE(dt)
         )
         SELECT 
-            COALESCE(n.date, l.date, a.date, r.date, f.date) AS Date,
+            COALESCE(n.date, l.date, a.date, r.date, f.date, acq.date) AS Date,
             COALESCE(n.ngrs_count, 0) AS Total_Transaksi_NGRS,
             COALESCE(n.ngrs_amount, 0) AS Total_Nilai_Denom_NGRS,
             COALESCE(n.total_tp, 0) AS Total_TP_NGRS,
             COALESCE(l.linkaja_debit_count, 0) + COALESCE(a.alfred_count, 0) - COALESCE(r.reversal_count, 0) + COALESCE(f.finpay_count, 0) AS Total_Transaksi_LinkAja_Finpay,
-            COALESCE(l.linkaja_debit_amount, 0) + COALESCE(a.alfred_amount, 0) - COALESCE(r.reversal_amount, 0) + COALESCE(f.finpay_amount, 0) AS Total_Nilai_Transaksi_LinkAja_Finpay
+            COALESCE(l.linkaja_debit_amount, 0) + COALESCE(a.alfred_amount, 0) - COALESCE(r.reversal_amount, 0) + COALESCE(f.finpay_amount, 0) AS Total_Nilai_Transaksi_LinkAja_Finpay,
+            COALESCE(acq.acquisition_count, 0) AS Total_Transaksi_Akuisisi,
+            COALESCE(acq.acquisition_amount, 0) AS Total_Nilai_Akuisisi
         FROM NGRS n
         FULL OUTER JOIN LinkAjaDebit l ON n.date = l.date
         FULL OUTER JOIN AlfredLinkAja a ON n.date = a.date
         FULL OUTER JOIN AlfredReversal r ON n.date = r.date
         FULL OUTER JOIN Finpay f ON n.date = f.date
+        FULL OUTER JOIN Acquisition acq ON n.date = acq.date
         ORDER BY Date
         """
         df = client.query(query).to_dataframe()
         
-        # Format kolom tanggal dan isi NaN
         df['Date'] = pd.to_datetime(df['Date']).dt.date
         numeric_columns = ['Total_Transaksi_NGRS', 'Total_Nilai_Denom_NGRS', 'Total_TP_NGRS', 
-                          'Total_Transaksi_LinkAja_Finpay', 'Total_Nilai_Transaksi_LinkAja_Finpay']
+                          'Total_Transaksi_LinkAja_Finpay', 'Total_Nilai_Transaksi_LinkAja_Finpay',
+                          'Total_Transaksi_Akuisisi', 'Total_Nilai_Akuisisi']
         for col in numeric_columns:
             df[col] = df[col].fillna(0)
         
@@ -1028,6 +1041,7 @@ def main():
                 df_for_excel['Total_Nilai_Denom_NGRS'] = df_for_excel['Total_Nilai_Denom_NGRS'].apply(format_rupiah)
                 df_for_excel['Total_TP_NGRS'] = df_for_excel['Total_TP_NGRS'].apply(format_rupiah)
                 df_for_excel['Total_Nilai_Transaksi_LinkAja_Finpay'] = df_for_excel['Total_Nilai_Transaksi_LinkAja_Finpay'].apply(format_rupiah)
+                df_for_excel['Total_Nilai_Akuisisi'] = df_for_excel['Total_Nilai_Akuisisi'].apply(format_rupiah)
                 
                 # Generate Excel file
                 excel_data = to_excel(df_for_excel)
