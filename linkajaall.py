@@ -798,7 +798,7 @@ def main():
         st.markdown("<div class='group-header-font'>Transaksi & Nilai NGRS</div>", unsafe_allow_html=True)
 
         # Kolom untuk scorecards
-        col9, col10, col11 = st.columns(3)
+        col9, col10, col11, col12, col13 = st.columns(5)
 
         with col9:
             st.markdown(
