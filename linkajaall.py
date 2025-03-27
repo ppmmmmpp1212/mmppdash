@@ -842,33 +842,7 @@ def main():
         # Grup Baru: Transaksi dan Nilai Akuisisi
         st.markdown("<div class='group-header-font'>Transaksi & Nilai Akuisisi</div>", unsafe_allow_html=True)
         
-        # Kolom untuk scorecards (2 kolom)
-        col12, col13 = st.columns(2)
-        
-        with col12:
-            st.markdown(
-                f"""
-                <div class="scorecard ngrs-group">
-                    <div class="metric-label">Total Transaksi Akuisisi</div>
-                    <div class="metric-box">{total_trx_acquisition:,}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        
-        with col13:
-            st.markdown(
-                f"""
-                <div class="scorecard ngrs-group">
-                    <div class="metric-label">Total Nilai Akuisisi</div>
-                    <div class="metric-box">Rp {format_rupiah(total_amount_acquisition)}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        
-        st.markdown("</div>", unsafe_allow_html=True)  # Tutup scorecard-container
-        st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
+    
 
         # Divider antar grup
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
