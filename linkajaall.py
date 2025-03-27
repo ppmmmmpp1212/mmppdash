@@ -2,7 +2,7 @@ import streamlit as st
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import pandas as pd
-import os
+#import os
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, date
