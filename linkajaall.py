@@ -335,7 +335,7 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
                 COALESCE(SUM(
                     CASE 
                         WHEN a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom 
-                        THEN (a.SpendAmount * (r.TP / 100)) - 20
+                        THEN (a.SpendAmount * (r.TP / 100)) 
                         ELSE 0 
                     END
                 ), 0) AS total_tp
