@@ -385,8 +385,10 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             COALESCE(n.ngrs_count, 0) AS Total_Transaksi_NGRS,
             COALESCE(n.ngrs_amount, 0) AS Total_Nilai_Denom_NGRS,
             COALESCE(nt.total_tp, 0) AS Total_TP_NGRS,
-            COALESCE(l.linkaja_debit_count, 0) + COALESCE(a.alfred_count, 0) - COALESCE(r.reversal_count, 0) + COALESCE(f.finpay_count, 0) AS Total_Transaksi_LinkAja_Finpay,
-            COALESCE(l.linkaja_debit_amount, 0) + COALESCE(a.alfred_amount, 0) - COALESCE(r.reversal_amount, 0) + COALESCE(f.finpay_amount, 0) AS Total_Nilai_Transaksi_LinkAja_Finpay,
+            COALESCE(l.linkaja_debit_count, 0) + COALESCE(a.alfred_count, 0) - COALESCE(r.reversal_count, 0) AS Total_Transaksi_LinkAja,
+            COALESCE(l.linkaja_debit_amount, 0) + COALESCE(a.alfred_amount, 0) - COALESCE(r.reversal_amount, 0) AS Total_Nilai_Transaksi_LinkAja,
+            COALESCE(f.finpay_count, 0) AS Total_Transaksi_Finpay,
+            COALESCE(f.finpay_amount, 0) AS Total_Nilai_Finpay,
             COALESCE(acq.acquisition_count, 0) AS Total_Transaksi_Akuisisi,
             COALESCE(acq.acquisition_amount, 0) AS Total_Nilai_Akuisisi,
             COALESCE(roam.roaming_count, 0) AS Total_Transaksi_Roaming,
@@ -405,7 +407,8 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
         
         df['Date'] = pd.to_datetime(df['Date']).dt.date
         numeric_columns = ['Total_Transaksi_NGRS', 'Total_Nilai_Denom_NGRS', 'Total_TP_NGRS', 
-                          'Total_Transaksi_LinkAja_Finpay', 'Total_Nilai_Transaksi_LinkAja_Finpay',
+                          'Total_Transaksi_LinkAja', 'Total_Nilai_Transaksi_LinkAja',
+                          'Total_Transaksi_Finpay', 'Total_Nilai_Finpay',
                           'Total_Transaksi_Akuisisi', 'Total_Nilai_Akuisisi',
                           'Total_Transaksi_Roaming', 'Total_Nilai_Roaming']
         for col in numeric_columns:
@@ -1117,7 +1120,7 @@ def main():
                             color: #333;
                         }
                     </style>
-
+        
                     <div class="title-box">
                         Preview Summary
                     </div>
@@ -1140,7 +1143,7 @@ def main():
                     """,
                     unsafe_allow_html=True
                 )
-
+        
                 # Tampilkan preview tabel di tengah
                 with st.container():
                     st.markdown('<div class="centered-dataframe">', unsafe_allow_html=True)
@@ -1151,7 +1154,8 @@ def main():
                 df_for_excel = daily_summary_df.copy()
                 df_for_excel['Total_Nilai_Denom_NGRS'] = df_for_excel['Total_Nilai_Denom_NGRS'].apply(format_rupiah)
                 df_for_excel['Total_TP_NGRS'] = df_for_excel['Total_TP_NGRS'].apply(format_rupiah)
-                df_for_excel['Total_Nilai_Transaksi_LinkAja_Finpay'] = df_for_excel['Total_Nilai_Transaksi_LinkAja_Finpay'].apply(format_rupiah)
+                df_for_excel['Total_Nilai_Transaksi_LinkAja'] = df_for_excel['Total_Nilai_Transaksi_LinkAja'].apply(format_rupiah)
+                df_for_excel['Total_Nilai_Finpay'] = df_for_excel['Total_Nilai_Finpay'].apply(format_rupiah)
                 df_for_excel['Total_Nilai_Akuisisi'] = df_for_excel['Total_Nilai_Akuisisi'].apply(format_rupiah)
                 df_for_excel['Total_Nilai_Roaming'] = df_for_excel['Total_Nilai_Roaming'].apply(format_rupiah)
                 
@@ -1165,10 +1169,10 @@ def main():
                     file_name=f"Daily_Summary_{start_date}_to_{end_date}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-
+        
                 st.markdown("""</div>""", unsafe_allow_html=True)  # Tutup group-border
                 st.markdown("""</div>""", unsafe_allow_html=True)  # Tutup group-border
-
+        
                 # Buat timeseries plots menggunakan Plotly
                 st.markdown(
                     """
@@ -1185,36 +1189,38 @@ def main():
                             color: #333;
                         }
                     </style>
-
+        
                     <div class="title-box">
                         Timeseries Plot
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-
-                # Plot 1: Total Transaksi NGRS dan Total Transaksi LinkAja + Finpay (Kiri)
+        
+                # Plot 1: Total Transaksi NGRS dan Total Transaksi LinkAja (Kiri)
                 fig1 = go.Figure()
                 fig1.add_trace(go.Scatter(x=daily_summary_df['Date'], y=daily_summary_df['Total_Transaksi_NGRS'], mode='lines+markers', name='Total Transaksi NGRS', line=dict(color='green')))
-                fig1.add_trace(go.Scatter(x=daily_summary_df['Date'], y=daily_summary_df['Total_Transaksi_LinkAja_Finpay'], mode='lines+markers', name='Total Transaksi LinkAja + Finpay', line=dict(color='blue')))
+                fig1.add_trace(go.Scatter(x=daily_summary_df['Date'], y=daily_summary_df['Total_Transaksi_LinkAja'], mode='lines+markers', name='Total Transaksi LinkAja', line=dict(color='blue')))
+                fig1.add_trace(go.Scatter(x=daily_summary_df['Date'], y=daily_summary_df['Total_Transaksi_Finpay'], mode='lines+markers', name='Total Transaksi Finpay', line=dict(color='cyan')))
                 fig1.update_layout(
-                    title='Total Transaksi NGRS vs LinkAja + Finpay',
+                    title='Total Transaksi NGRS vs LinkAja vs Finpay',
                     xaxis_title='Tanggal',
                     yaxis_title='Jumlah Transaksi',
                     template='plotly_white'
                 )
-
-                # Plot 2: Total TP NGRS dan Total Nilai Transaksi LinkAja + Finpay (Kanan)
+        
+                # Plot 2: Total TP NGRS dan Total Nilai Transaksi LinkAja (Kanan)
                 fig2 = go.Figure()
                 fig2.add_trace(go.Scatter(x=daily_summary_df['Date'], y=daily_summary_df['Total_TP_NGRS'], mode='lines+markers', name='Total TP NGRS', line=dict(color='purple')))
-                fig2.add_trace(go.Scatter(x=daily_summary_df['Date'], y=daily_summary_df['Total_Nilai_Transaksi_LinkAja_Finpay'], mode='lines+markers', name='Total Nilai Transaksi LinkAja + Finpay', line=dict(color='orange')))
+                fig2.add_trace(go.Scatter(x=daily_summary_df['Date'], y=daily_summary_df['Total_Nilai_Transaksi_LinkAja'], mode='lines+markers', name='Total Nilai Transaksi LinkAja', line=dict(color='orange')))
+                fig2.add_trace(go.Scatter(x=daily_summary_df['Date'], y=daily_summary_df['Total_Nilai_Finpay'], mode='lines+markers', name='Total Nilai Finpay', line=dict(color='red')))
                 fig2.update_layout(
-                    title='Total TP NGRS vs Nilai Transaksi LinkAja + Finpay',
+                    title='Total TP NGRS vs Nilai Transaksi LinkAja vs Finpay',
                     xaxis_title='Tanggal',
                     yaxis_title='Nilai (Rp)',
                     template='plotly_white'
                 )
-
+        
                 # Tampilkan plot berdampingan menggunakan container CSS
                 st.markdown("<div class='plot-container'>", unsafe_allow_html=True)
                 st.plotly_chart(fig1, use_container_width=True)
