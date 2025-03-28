@@ -284,17 +284,19 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
         WITH LinkAjaDebit AS (
             SELECT 
                 DATE(InitiateDate) AS date,
+                ClusterID,
                 COUNT(*) AS linkaja_debit_count,
                 COALESCE(SUM(CAST(Debit AS FLOAT64)), 0) AS linkaja_debit_amount
             FROM `alfred-analytics-406004.analytics_alfred.linkaja_Digipos_B2B_tf_Cluster`
             WHERE DATE(InitiateDate) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND CAST(Debit AS FLOAT64) != 0
-            GROUP BY DATE(InitiateDate)
+            GROUP BY DATE(InitiateDate), ClusterID
         ),
         AlfredLinkAja AS (
             SELECT 
                 DATE(InitiateDate) AS date,
+                ClusterID,
                 COUNT(*) AS alfred_count,
                 COALESCE(SUM(CAST(Credit AS FLOAT64)), 0) AS alfred_amount
             FROM `alfred-analytics-406004.analytics_alfred.alfred_linkaja`
@@ -302,22 +304,24 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND TransactionScenario = 'Digipos B2B Transfer'
                 AND CAST(Credit AS FLOAT64) != 0
-            GROUP BY DATE(InitiateDate)
+            GROUP BY DATE(InitiateDate), ClusterID
         ),
         AlfredReversal AS (
             SELECT 
                 DATE(InitiateDate) AS date,
+                ClusterID,
                 COUNT(*) AS reversal_count,
                 COALESCE(SUM(CAST(Debit AS FLOAT64)), 0) AS reversal_amount
             FROM `alfred-analytics-406004.analytics_alfred.alfred_linkaja`
             WHERE DATE(InitiateDate) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND TransactionScenario = 'Buy Goods Reversal for General Merchant'
-            GROUP BY DATE(InitiateDate)
+            GROUP BY DATE(InitiateDate), ClusterID
         ),
         Finpay AS (
             SELECT 
                 DATE(dt) AS date,
+                ClusterID,
                 COUNT(*) AS finpay_count,
                 COALESCE(SUM(CAST(Credit AS FLOAT64)), 0) AS finpay_amount
             FROM `alfred-analytics-406004.analytics_alfred.alfred_finpay`
@@ -325,11 +329,12 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND Transaction = 'RECHARGE'
                 AND Remarks LIKE 'Biaya%'
-            GROUP BY DATE(dt)
+            GROUP BY DATE(dt), ClusterID
         ),
         NGRS AS (
             SELECT 
                 DATE(dt) AS date,
+                ClusterID,
                 COUNT(*) AS ngrs_count,
                 COALESCE(SUM(CAST(SpendAmount AS FLOAT64)), 0) AS ngrs_amount,
                 COALESCE(SUM(
@@ -347,57 +352,71 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND a.ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND a.TransactionType IN ({', '.join([f"'{ttype}'" for ttype in selected_transaction_types_ngrs])})
-            GROUP BY DATE(dt)
+            GROUP BY DATE(dt), ClusterID
         ),
         Acquisition AS (
             SELECT 
                 DATE(dt) AS date,
+                ClusterID,
                 COUNT(*) AS acquisition_count,
                 COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS acquisition_amount
             FROM `alfred-analytics-406004.analytics_alfred.alfred_ngrs_akui`
             WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND TransactionType IN ({acquisition_types_str})
-            GROUP BY DATE(dt)
+            GROUP BY DATE(dt), ClusterID
         ),
         Roaming AS (
             SELECT 
                 DATE(dt) AS date,
+                ClusterID,
                 COUNT(*) AS roaming_count,
                 COALESCE(SUM(ABS(CAST(TransactionAmount AS FLOAT64))), 0) AS roaming_amount
             FROM `alfred-analytics-406004.analytics_alfred.ngrs_roaming`
             WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND TransactionType IN ({roaming_types_str})
-            GROUP BY DATE(dt)
+            GROUP BY DATE(dt), ClusterID
         )
         SELECT 
             COALESCE(n.date, l.date, a.date, r.date, f.date, acq.date, roam.date) AS Date,
+            COALESCE(n.ClusterID, l.ClusterID, a.ClusterID, r.ClusterID, f.ClusterID, acq.ClusterID, roam.ClusterID) AS ClusterID,
             COALESCE(n.ngrs_count, 0) AS Total_Transaksi_NGRS,
             COALESCE(n.ngrs_amount, 0) AS Total_Nilai_Denom_NGRS,
             COALESCE(n.total_tp, 0) AS Total_TP_NGRS,
-            COALESCE(l.linkaja_debit_count, 0) + COALESCE(a.alfred_count, 0) - COALESCE(r.reversal_count, 0) + COALESCE(f.finpay_count, 0) AS Total_Transaksi_LinkAja_Finpay,
-            COALESCE(l.linkaja_debit_amount, 0) + COALESCE(a.alfred_amount, 0) - COALESCE(r.reversal_amount, 0) + COALESCE(f.finpay_amount, 0) AS Total_Nilai_Transaksi_LinkAja_Finpay,
+            COALESCE(l.linkaja_debit_count, 0) AS Total_Transaksi_LinkAja_Debit,
+            COALESCE(l.linkaja_debit_amount, 0) AS Total_Nilai_LinkAja_Debit,
+            COALESCE(a.alfred_count, 0) AS Total_Transaksi_LinkAja_OutCluster,
+            COALESCE(a.alfred_amount, 0) AS Total_Nilai_LinkAja_OutCluster,
+            COALESCE(r.reversal_count, 0) AS Total_Transaksi_LinkAja_Reversal,
+            COALESCE(r.reversal_amount, 0) AS Total_Nilai_LinkAja_Reversal,
+            COALESCE(f.finpay_count, 0) AS Total_Transaksi_Finpay,
+            COALESCE(f.finpay_amount, 0) AS Total_Nilai_Finpay,
             COALESCE(acq.acquisition_count, 0) AS Total_Transaksi_Akuisisi,
             COALESCE(acq.acquisition_amount, 0) AS Total_Nilai_Akuisisi,
             COALESCE(roam.roaming_count, 0) AS Total_Transaksi_Roaming,
             COALESCE(roam.roaming_amount, 0) AS Total_Nilai_Roaming
         FROM NGRS n
-        FULL OUTER JOIN LinkAjaDebit l ON n.date = l.date
-        FULL OUTER JOIN AlfredLinkAja a ON n.date = a.date
-        FULL OUTER JOIN AlfredReversal r ON n.date = r.date
-        FULL OUTER JOIN Finpay f ON n.date = f.date
-        FULL OUTER JOIN Acquisition acq ON n.date = acq.date
-        FULL OUTER JOIN Roaming roam ON n.date = roam.date
-        ORDER BY Date
+        FULL OUTER JOIN LinkAjaDebit l ON n.date = l.date AND n.ClusterID = l.ClusterID
+        FULL OUTER JOIN AlfredLinkAja a ON n.date = a.date AND n.ClusterID = a.ClusterID
+        FULL OUTER JOIN AlfredReversal r ON n.date = r.date AND n.ClusterID = r.ClusterID
+        FULL OUTER JOIN Finpay f ON n.date = f.date AND n.ClusterID = f.ClusterID
+        FULL OUTER JOIN Acquisition acq ON n.date = acq.date AND n.ClusterID = acq.ClusterID
+        FULL OUTER JOIN Roaming roam ON n.date = roam.date AND n.ClusterID = roam.ClusterID
+        ORDER BY Date, ClusterID
         """
         df = client.query(query).to_dataframe()
         
         df['Date'] = pd.to_datetime(df['Date']).dt.date
-        numeric_columns = ['Total_Transaksi_NGRS', 'Total_Nilai_Denom_NGRS', 'Total_TP_NGRS', 
-                          'Total_Transaksi_LinkAja_Finpay', 'Total_Nilai_Transaksi_LinkAja_Finpay',
-                          'Total_Transaksi_Akuisisi', 'Total_Nilai_Akuisisi',
-                          'Total_Transaksi_Roaming', 'Total_Nilai_Roaming']
+        numeric_columns = [
+            'Total_Transaksi_NGRS', 'Total_Nilai_Denom_NGRS', 'Total_TP_NGRS',
+            'Total_Transaksi_LinkAja_Debit', 'Total_Nilai_LinkAja_Debit',
+            'Total_Transaksi_LinkAja_OutCluster', 'Total_Nilai_LinkAja_OutCluster',
+            'Total_Transaksi_LinkAja_Reversal', 'Total_Nilai_LinkAja_Reversal',
+            'Total_Transaksi_Finpay', 'Total_Nilai_Finpay',
+            'Total_Transaksi_Akuisisi', 'Total_Nilai_Akuisisi',
+            'Total_Transaksi_Roaming', 'Total_Nilai_Roaming'
+        ]
         for col in numeric_columns:
             df[col] = df[col].fillna(0)
         
@@ -1036,37 +1055,54 @@ def main():
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
 
         # Tampilkan tabel per cluster jika ada tepat 6 cluster yang dipilih
-        if len(selected_cluster_ids) == 6:
+        if len(selected_cluster_ids) <= 6:  # Ubah dari == 6 agar fleksibel untuk jumlah cluster
             st.markdown("---")
-            st.markdown("<h3 style='text-align: center;'>Summary Per Cluster</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center;'>Summary Per Cluster (Harian)</h3>", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
-
-            # Buat DataFrame untuk tabel
-            cluster_data = {
-                "Cluster ID": selected_cluster_ids,
-                "Total Transaksi LinkAja Debit": [all_metrics[cluster]['linkaja_row_count_debit'] for cluster in selected_cluster_ids],
-                "Total Transaksi LinkAja Credit": [all_metrics[cluster]['linkaja_row_count_credit'] for cluster in selected_cluster_ids],
-                "Total Transaksi NGRS": [all_metrics[cluster]['all_row_count'] for cluster in selected_cluster_ids],
-                "Total Transaksi LinkAja OutCluster": [all_metrics[cluster]['alfred_row_count'] for cluster in selected_cluster_ids],
-                "Total Transaksi LinkAja Reversal": [all_metrics[cluster]['alfred_reversal_row_count'] for cluster in selected_cluster_ids],
-                "Total Nilai (Rp) LinkAja Debit": [f"Rp {format_rupiah(all_metrics[cluster]['linkaja_total_debit'])}" for cluster in selected_cluster_ids],
-                "Total Nilai (Rp) LinkAja Credit": [f"Rp {format_rupiah(all_metrics[cluster]['linkaja_total_credit'])}" for cluster in selected_cluster_ids],
-                "Total Nilai Denom NGRS": [f" {format_rupiah(all_metrics[cluster]['all_total_spend'])}" for cluster in selected_cluster_ids],
-                "Total Nilai (Rp) LinkAja Outcluster": [f"Rp {format_rupiah(all_metrics[cluster]['alfred_total_amount'])}" for cluster in selected_cluster_ids],
-                "Total Nilai (Rp) LinkAja Reversal": [f"Rp {format_rupiah(all_metrics[cluster]['alfred_reversal_total_amount'])}" for cluster in selected_cluster_ids],
-                "Total Transaksi LinkAja": [all_metrics[cluster]['total_transaksi_linkaja'] for cluster in selected_cluster_ids],
-                "Total Transaksi NGRS": [all_metrics[cluster]['all_row_count'] for cluster in selected_cluster_ids],
-                "Total Nilai Transaksi LinkAja": [f"Rp {format_rupiah(all_metrics[cluster]['total_nilai_transaksi_ngrs'])}" for cluster in selected_cluster_ids],
-                "Total Nilai Denom NGRS": [f"Rp {format_rupiah(all_metrics[cluster]['all_total_spend'])}" for cluster in selected_cluster_ids],
-                "Fee": [f"Rp {format_rupiah(all_metrics[cluster]['fee'])}" for cluster in selected_cluster_ids],
-                "Total Transaksi Akuisisi": [all_metrics[cluster]['total_trx_acquisition'] for cluster in selected_cluster_ids],
-                "Total Nilai Akuisisi": [f"Rp {format_rupiah(all_metrics[cluster]['total_amount_acquisition'])}" for cluster in selected_cluster_ids],
-                "Total Nilai Roaming": [f"Rp {format_rupiah(all_metrics[cluster]['total_amount_roaming'])}" for cluster in selected_cluster_ids]
-            }
-            df_cluster = pd.DataFrame(cluster_data)
-
-            # Tampilkan tabel
-            st.dataframe(df_cluster, use_container_width=True)
+        
+            # Ambil data harian dari fetch_daily_summary
+            daily_summary_df = fetch_daily_summary(
+                start_date=start_date,
+                end_date=end_date,
+                selected_transaction_types_ngrs=selected_transaction_types_ngrs,
+                selected_cluster_ids=selected_cluster_ids
+            )
+        
+            if not daily_summary_df.empty:
+                # Buat DataFrame untuk tabel dengan data harian
+                cluster_data = {
+                    "Date": daily_summary_df['Date'],
+                    "Cluster ID": daily_summary_df['ClusterID'],
+                    "Total Transaksi LinkAja Debit": daily_summary_df['Total_Transaksi_LinkAja_Debit'],
+                    "Total Transaksi NGRS": daily_summary_df['Total_Transaksi_NGRS'],
+                    "Total Transaksi LinkAja OutCluster": daily_summary_df['Total_Transaksi_LinkAja_OutCluster'],
+                    "Total Transaksi LinkAja Reversal": daily_summary_df['Total_Transaksi_LinkAja_Reversal'],
+                    "Total Transaksi Finpay": daily_summary_df['Total_Transaksi_Finpay'],  # Kolom baru
+                    "Total Nilai (Rp) LinkAja Debit": daily_summary_df['Total_Nilai_LinkAja_Debit'].apply(format_rupiah).apply(lambda x: f"Rp {x}"),
+                    "Total Nilai Denom NGRS": daily_summary_df['Total_Nilai_Denom_NGRS'].apply(format_rupiah).apply(lambda x: f"Rp {x}"),
+                    "Total Nilai (Rp) LinkAja Outcluster": daily_summary_df['Total_Nilai_LinkAja_OutCluster'].apply(format_rupiah).apply(lambda x: f"Rp {x}"),
+                    "Total Nilai (Rp) LinkAja Reversal": daily_summary_df['Total_Nilai_LinkAja_Reversal'].apply(format_rupiah).apply(lambda x: f"Rp {x}"),
+                    "Total Nilai (Rp) Finpay": daily_summary_df['Total_Nilai_Finpay'].apply(format_rupiah).apply(lambda x: f"Rp {x}"),  # Kolom baru
+                    "Total Transaksi Akuisisi": daily_summary_df['Total_Transaksi_Akuisisi'],
+                    "Total Nilai (Rp) Akuisisi": daily_summary_df['Total_Nilai_Akuisisi'].apply(format_rupiah).apply(lambda x: f"Rp {x}"),
+                    "Total Transaksi Roaming": daily_summary_df['Total_Transaksi_Roaming'],
+                    "Total Nilai (Rp) Roaming": daily_summary_df['Total_Nilai_Roaming'].apply(format_rupiah).apply(lambda x: f"Rp {x}")
+                }
+                df_cluster = pd.DataFrame(cluster_data)
+        
+                # Tampilkan tabel
+                st.dataframe(df_cluster, use_container_width=True)
+        
+                # Tambahkan tombol unduh Excel untuk data harian per cluster
+                excel_data_cluster = to_excel(df_cluster)
+                st.download_button(
+                    label="Unduh Summary Per Cluster Harian (Excel)",
+                    data=excel_data_cluster,
+                    file_name=f"Summary_Per_Cluster_Harian_{start_date}_to_{end_date}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            else:
+                st.warning("Tidak ada data untuk periode atau cluster yang dipilih.")
 
         def normalize_phone_number(number):
             if pd.isna(number):  # Handle NaN
