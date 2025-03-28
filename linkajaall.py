@@ -1036,7 +1036,7 @@ def main():
         st.markdown("</div>", unsafe_allow_html=True)  # Tutup group-container
 
         # Tampilkan tabel per cluster jika ada tepat 6 cluster yang dipilih
-        if len(selected_cluster_ids) == 6:
+        if len(selected_cluster_ids) <= 6:
             st.markdown("---")
             st.markdown("<h3 style='text-align: center;'>Summary Per Cluster</h3>", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
