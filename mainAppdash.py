@@ -1,7 +1,7 @@
 # main_app.py
 import streamlit as st
 from streamlit_option_menu import option_menu
-#from ChipTracking import main as chip_main  # Asumsi ada fungsi main() di ChipTracking.py
+from ChipTracking import main as chip_main  # Asumsi ada fungsi main() di ChipTracking.py
 from linkajaall import main as linkaja_main  # Asumsi ada fungsi main() di linkajaall.py
 from infiltrasi import main as infil_main  # Asumsi ada fungsi main() di linkajaall.py
 
