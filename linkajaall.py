@@ -331,7 +331,16 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             SELECT 
                 DATE(dt) AS date,
                 COUNT(*) AS ngrs_count,
-                COALESCE(SUM(CAST(SpendAmount AS FLOAT64)), 0) AS ngrs_amount,
+                COALESCE(SUM(CAST(SpendAmount AS FLOAT64)), 0) AS ngrs_amount
+            FROM `alfred-analytics-406004.analytics_alfred.All_pjpnonpjp` a
+            WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+                AND a.ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+                AND a.TransactionType IN ({', '.join([f"'{ttype}'" for ttype in selected_transaction_types_ngrs])})
+            GROUP BY DATE(dt)
+        ),
+        NGRS_TP AS (
+            SELECT 
+                DATE(a.dt) AS date,
                 COALESCE(SUM(
                     CASE 
                         WHEN a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom 
@@ -344,10 +353,10 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             ON a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom
                 AND a.dt BETWEEN r.Start_Date AND r.End_Date
                 AND a.ClusterID = r.ClusterID
-            WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+            WHERE DATE(a.dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND a.ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND a.TransactionType IN ({', '.join([f"'{ttype}'" for ttype in selected_transaction_types_ngrs])})
-            GROUP BY DATE(dt)
+            GROUP BY DATE(a.dt)
         ),
         Acquisition AS (
             SELECT 
@@ -372,10 +381,10 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             GROUP BY DATE(dt)
         )
         SELECT 
-            COALESCE(n.date, l.date, a.date, r.date, f.date, acq.date, roam.date) AS Date,
+            COALESCE(n.date, l.date, a.date, r.date, f.date, acq.date, roam.date, nt.date) AS Date,
             COALESCE(n.ngrs_count, 0) AS Total_Transaksi_NGRS,
             COALESCE(n.ngrs_amount, 0) AS Total_Nilai_Denom_NGRS,
-            COALESCE(n.total_tp, 0) AS Total_TP_NGRS,
+            COALESCE(nt.total_tp, 0) AS Total_TP_NGRS,
             COALESCE(l.linkaja_debit_count, 0) + COALESCE(a.alfred_count, 0) - COALESCE(r.reversal_count, 0) + COALESCE(f.finpay_count, 0) AS Total_Transaksi_LinkAja_Finpay,
             COALESCE(l.linkaja_debit_amount, 0) + COALESCE(a.alfred_amount, 0) - COALESCE(r.reversal_amount, 0) + COALESCE(f.finpay_amount, 0) AS Total_Nilai_Transaksi_LinkAja_Finpay,
             COALESCE(acq.acquisition_count, 0) AS Total_Transaksi_Akuisisi,
@@ -389,6 +398,7 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
         FULL OUTER JOIN Finpay f ON n.date = f.date
         FULL OUTER JOIN Acquisition acq ON n.date = acq.date
         FULL OUTER JOIN Roaming roam ON n.date = roam.date
+        FULL OUTER JOIN NGRS_TP nt ON n.date = nt.date
         ORDER BY Date
         """
         df = client.query(query).to_dataframe()
