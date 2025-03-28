@@ -329,7 +329,7 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
         ),
         NGRS AS (
             SELECT 
-                DATE(Completion) AS date,
+                DATE(dt) AS date,
                 COUNT(*) AS ngrs_count,
                 COALESCE(SUM(CAST(SpendAmount AS FLOAT64)), 0) AS ngrs_amount,
                 COALESCE(SUM(
@@ -344,10 +344,10 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             ON a.SpendAmount BETWEEN r.StartDenom AND r.EndDenom
                 AND a.dt BETWEEN r.Start_Date AND r.End_Date
                 AND a.ClusterID = r.ClusterID
-            WHERE DATE(Completion) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+            WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
                 AND a.ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND a.TransactionType IN ({', '.join([f"'{ttype}'" for ttype in selected_transaction_types_ngrs])})
-            GROUP BY DATE(Completion)
+            GROUP BY DATE(dt)
         ),
         Acquisition AS (
             SELECT 
@@ -575,7 +575,7 @@ def main():
                 
                 # NGRS
                 cluster_metrics['all_row_count'], cluster_metrics['all_total_spend'] = fetch_aggregate_data(
-                    "All_pjpnonpjp", count_column="*", sum_column="SpendAmount", date_column="Completion",
+                    "All_pjpnonpjp", count_column="*", sum_column="SpendAmount", date_column="dt",
                     start_date=start_date, end_date=end_date, cluster_column="ClusterID",
                     selected_clusters=[cluster], transaction_type_column="TransactionType",
                     selected_transaction_types=selected_transaction_types_ngrs
@@ -1260,7 +1260,7 @@ def main():
             query = f"""
             SELECT *
             FROM `alfred-analytics-406004.analytics_alfred.All_pjpnonpjp`
-            WHERE DATE(Completion) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
+            WHERE DATE(dt) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
             AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
             AND TransactionType IN ({', '.join([f"'{ttype}'" for ttype in selected_transaction_types_ngrs])})
             """
