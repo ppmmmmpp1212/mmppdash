@@ -4,6 +4,7 @@ from streamlit_option_menu import option_menu
 from ChipTracking import main as chip_main  # Asumsi ada fungsi main() di ChipTracking.py
 from linkajaall import main as linkaja_main  # Asumsi ada fungsi main() di linkajaall.py
 from infiltrasi import main as infil_main  # Asumsi ada fungsi main() di linkajaall.py
+from rspjpsearch import main as pjp_main
 
 # Fungsi untuk menjalankan aplikasi
 def run_app():
@@ -14,7 +15,7 @@ def run_app():
     with st.sidebar:
         selected = option_menu(
             menu_title="Main Menu",  # Judul menu
-            options=["Chip Tracking", "Linkaja x NGRS", "Infiltrasi Analysis"],  # Pilihan menu
+            options=["Chip Tracking", "Linkaja x NGRS", "Infiltrasi Analysis", "PJP RS Search"],  # Pilihan menu
             icons=["cpu", "wallet", "cpu"],  # Ikon untuk setiap opsi
             menu_icon="cast",  # Ikon menu utama
             default_index=0,  # Opsi default yang dipilih
@@ -42,6 +43,9 @@ def run_app():
    
     elif selected == "Infiltrasi Analysis" :
         infil_main()
+
+    elif selected =="PJP RS Search" :
+        pjp_main()
 
 if __name__ == "__main__":
     run_app()
