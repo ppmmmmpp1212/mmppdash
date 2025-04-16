@@ -1,3 +1,4 @@
+# rspjpsearch.py
 import streamlit as st
 from google.cloud import bigquery
 from google.oauth2 import service_account
@@ -73,7 +74,7 @@ def search_bigquery_data(outlet_id, no_rs, outlet_name):
         return None
     
     try:
-        query = f"""
+        query = """
         SELECT *
         FROM `alfred-analytics-406004.analytics_alfred.PJPRS_Clean`
         WHERE 1=1
@@ -129,16 +130,11 @@ def display_search_results(df):
         st.markdown('</div>', unsafe_allow_html=True)
 
 # Main App
-    
 def main():
-    st.markdown(
-        """
-        <h1 style='text-align: center;'>Pencarian Profil Data PJPRS</h1>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown('<div class="main-title">Pencarian Profil Data PJPRS</div>', unsafe_allow_html=True)
     
     # Form Pencarian
+    st.markdown('<div class="search-box">', unsafe_allow_html=True)
     st.subheader("Cari Data")
     with st.form(key="search_form"):
         col1, col2, col3 = st.columns(3)
