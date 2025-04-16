@@ -16,7 +16,7 @@ def run_app():
         selected = option_menu(
             menu_title="Main Menu",  # Judul menu
             options=["Chip Tracking", "Linkaja x NGRS", "Infiltrasi Analysis", "PJP RS Search"],  # Pilihan menu
-            icons=["cpu", "wallet", "cpu"],  # Ikon untuk setiap opsi
+            icons=["cpu", "wallet", "cpu", "cpu"],  # Ikon untuk setiap opsi
             menu_icon="cast",  # Ikon menu utama
             default_index=0,  # Opsi default yang dipilih
             styles={
