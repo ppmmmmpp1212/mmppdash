@@ -9,7 +9,7 @@ from rspjpsearch import main as pjp_main
 # Fungsi untuk menjalankan aplikasi
 def run_app():
     # Konfigurasi halaman
-    st.set_page_config(page_title="MMPP Analysis Dash", page_icon = "Screenshot 2025-02-20 153019.png", layout="wide")
+    st.set_page_config(page_title="MMPP Analysis Dash",  layout="wide")
 
     # Menu sidebar menggunakan streamlit-option-menu
     with st.sidebar:
