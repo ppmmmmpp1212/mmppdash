@@ -296,16 +296,16 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             SELECT 
                 DATE(InitiateDate) AS date,
                 COUNT(*) AS alfred_count,
-                COALESCE(SUM(CAST(Credit AS FLOAT64)), 0) AS alfred_amount
+                COALESCE(SUM(SAFE_CAST(Credit AS FLOAT64)), 0) AS alfred_amount
             FROM `alfred-analytics-406004.analytics_alfred.alfred_linkaja`
-            WHERE DATE(InitiateDate) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
-                AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+            WHERE 
+                InitiateDate IS NOT NULL
+                AND DATE(InitiateDate) BETWEEN DATE(@start_date) AND DATE(@end_date)
+                AND ClusterID IN UNNEST(@selected_cluster_ids)
                 AND TransactionScenario IN ('Digipos B2B Transfer', 'Digipos B2B Transfer In Cluster')
-                AND CAST(Credit AS FLOAT64) != 0
+                AND SAFE_CAST(Credit AS FLOAT64) IS NOT NULL
+                AND SAFE_CAST(Credit AS FLOAT64) != 0
             GROUP BY DATE(InitiateDate)
-        )
-        SELECT * FROM AlfredLinkAja
-        ORDER BY date
         ),
         AlfredReversal AS (
             SELECT 
