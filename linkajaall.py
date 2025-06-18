@@ -301,7 +301,7 @@ def fetch_daily_summary(start_date, end_date, selected_transaction_types_ngrs, s
             WHERE 
                 InitiateDate IS NOT NULL
                 AND DATE(InitiateDate) BETWEEN DATE('{start_date}') AND DATE('{end_date}')
-                AND a.ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
+                AND ClusterID IN ({', '.join(map(str, selected_cluster_ids))})
                 AND TransactionScenario IN ('Digipos B2B Transfer', 'Digipos B2B Transfer In Cluster')
                 AND SAFE_CAST(Credit AS FLOAT64) IS NOT NULL
                 AND SAFE_CAST(Credit AS FLOAT64) != 0
