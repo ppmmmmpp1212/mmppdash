@@ -9,6 +9,7 @@ from datetime import datetime, date
 import json
 import re
 from io import BytesIO
+import io
 
 # Fungsi untuk menginisialisasi BigQuery client dari secrets
 @st.cache_resource
