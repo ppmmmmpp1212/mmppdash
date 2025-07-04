@@ -1152,6 +1152,7 @@ def main():
                     st.markdown('<div class="centered-dataframe">', unsafe_allow_html=True)
                     st.dataframe(daily_summary_df)
                     st.markdown('</div>', unsafe_allow_html=True)
+            
                 
                 # Salin DataFrame tanpa format Rupiah
                 df_for_excel = daily_summary_df.copy()
@@ -1165,13 +1166,20 @@ def main():
                     'Total_Nilai_Akuisisi',
                     'Total_Nilai_Roaming'
                 ]
-                
+
                 # Konversi kolom ke tipe numerik (jika belum)
                 for kolom in kolom_numerik:
                     df_for_excel[kolom] = pd.to_numeric(df_for_excel[kolom], errors='coerce')
                 
+                # Buat buffer untuk menyimpan file Excel
+                output = io.BytesIO()
+                
                 # Generate Excel file
-                excel_data = df_for_excel.to_excel(index=False, engine='openpyxl')
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df_for_excel.to_excel(writer, index=False)
+                
+                # Ambil data dari buffer
+                excel_data = output.getvalue()
                 
                 # Tombol download
                 st.download_button(
