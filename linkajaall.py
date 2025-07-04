@@ -1153,17 +1153,25 @@ def main():
                     st.dataframe(daily_summary_df)
                     st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Format nilai Rupiah untuk kolom nilai
+                # Salin DataFrame tanpa format Rupiah
                 df_for_excel = daily_summary_df.copy()
-                df_for_excel['Total_Nilai_Denom_NGRS'] = df_for_excel['Total_Nilai_Denom_NGRS'].apply(format_rupiah)
-                df_for_excel['Total_TP_NGRS'] = df_for_excel['Total_TP_NGRS'].apply(format_rupiah)
-                df_for_excel['Total_Nilai_Transaksi_LinkAja'] = df_for_excel['Total_Nilai_Transaksi_LinkAja'].apply(format_rupiah)
-                df_for_excel['Total_Nilai_Finpay'] = df_for_excel['Total_Nilai_Finpay'].apply(format_rupiah)
-                df_for_excel['Total_Nilai_Akuisisi'] = df_for_excel['Total_Nilai_Akuisisi'].apply(format_rupiah)
-                df_for_excel['Total_Nilai_Roaming'] = df_for_excel['Total_Nilai_Roaming'].apply(format_rupiah)
+                
+                # Pastikan kolom numerik tetap dalam format angka (tanpa formatting)
+                kolom_numerik = [
+                    'Total_Nilai_Denom_NGRS',
+                    'Total_TP_NGRS',
+                    'Total_Nilai_Transaksi_LinkAja',
+                    'Total_Nilai_Finpay',
+                    'Total_Nilai_Akuisisi',
+                    'Total_Nilai_Roaming'
+                ]
+                
+                # Konversi kolom ke tipe numerik (jika belum)
+                for kolom in kolom_numerik:
+                    df_for_excel[kolom] = pd.to_numeric(df_for_excel[kolom], errors='coerce')
                 
                 # Generate Excel file
-                excel_data = to_excel(df_for_excel)
+                excel_data = df_for_excel.to_excel(index=False, engine='openpyxl')
                 
                 # Tombol download
                 st.download_button(
